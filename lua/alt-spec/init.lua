@@ -250,6 +250,103 @@ function M.add_changelog()
   vim.cmd("startinsert!")
 end
 
+-- Known RPM spec sections
+local spec_sections = {
+  -- Main sections
+  "package", "description", "summary",
+  "prep", "build", "install", "check", "files", "changelog",
+  -- Scriptlets
+  "pre", "post", "preun", "postun", "pretrans", "posttrans",
+  -- Triggers
+  "triggerin", "triggerun", "triggerpostun",
+  "verifyscript",
+  -- File triggers
+  "filetriggerin", "filetriggerun", "filetriggerpostun",
+  "transfiletriggerin", "transfiletriggerun", "transfiletriggerpostun",
+}
+
+-- Build a set for fast lookup
+local section_set = {}
+for _, s in ipairs(spec_sections) do
+  section_set[s] = true
+end
+
+-- Check if a line is a section header
+-- Returns section name or nil
+local function get_section_name(line)
+  local section = line:match("^%s*%%(%a+)")
+  if section and section_set[section:lower()] then
+    return section:lower()
+  end
+  return nil
+end
+
+-- Find next section from current line (exclusive)
+-- direction: 1 for forward, -1 for backward
+local function find_section(lines, current_line, direction)
+  local start = current_line + direction
+  local finish = direction > 0 and #lines or 1
+  
+  for i = start, finish, direction do
+    local section = get_section_name(lines[i])
+    if section then
+      return i, section
+    end
+  end
+  return nil, nil
+end
+
+-- Jump to next section
+function M.next_section()
+  local buf = vim.api.nvim_get_current_buf()
+  local filepath = vim.api.nvim_buf_get_name(buf)
+  
+  if not filepath:match("%.spec$") then
+    vim.notify("Not a spec file", vim.log.levels.WARN)
+    return
+  end
+  
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local current_line = cursor[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  
+  local line_num, section = find_section(lines, current_line, 1)
+  
+  if not line_num then
+    vim.notify("No more sections", vim.log.levels.INFO)
+    return
+  end
+  
+  vim.api.nvim_win_set_cursor(0, { line_num, 0 })
+  vim.notify("%" .. section, vim.log.levels.INFO)
+end
+
+-- Jump to previous section
+function M.prev_section()
+  local buf = vim.api.nvim_get_current_buf()
+  local filepath = vim.api.nvim_buf_get_name(buf)
+  
+  if not filepath:match("%.spec$") then
+    vim.notify("Not a spec file", vim.log.levels.WARN)
+    return
+  end
+  
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local current_line = cursor[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  
+  local line_num, section = find_section(lines, current_line, -1)
+  
+  if not line_num then
+    vim.notify("No previous section", vim.log.levels.INFO)
+    return
+  end
+  
+  vim.api.nvim_win_set_cursor(0, { line_num, 0 })
+  vim.notify("%" .. section, vim.log.levels.INFO)
+end
+
+
 -- Cleanup spec file using cleanup_spec command
 function M.cleanup_spec()
   local buf = vim.api.nvim_get_current_buf()

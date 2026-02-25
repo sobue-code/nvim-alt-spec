@@ -19,6 +19,18 @@ end, {
   desc = "Cleanup RPM spec file",
 })
 
+vim.api.nvim_create_user_command("SpecNext", function()
+  require("alt-spec").next_section()
+end, {
+  desc = "Jump to next section in RPM spec file",
+})
+
+vim.api.nvim_create_user_command("SpecPrev", function()
+  require("alt-spec").prev_section()
+end, {
+  desc = "Jump to previous section in RPM spec file",
+})
+
 -- Set up keybindings for spec files
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "spec",
@@ -38,5 +50,18 @@ vim.api.nvim_create_autocmd("FileType", {
     
     -- Default keymap: <LocalLeader>cs (which is ,cs with LocalLeader = ,)
     vim.keymap.set("n", "<LocalLeader>cs", "<Plug>SpecCleanup", { buffer = true, silent = true, desc = "Cleanup spec file" })
+    
+    -- Section navigation
+    vim.keymap.set("n", "<Plug>SpecNext", function()
+      require("alt-spec").next_section()
+    end, { buffer = true, silent = true, desc = "Next section" })
+    
+    vim.keymap.set("n", "<Plug>SpecPrev", function()
+      require("alt-spec").prev_section()
+    end, { buffer = true, silent = true, desc = "Previous section" })
+    
+    -- Default keymaps: ]s / [s
+    vim.keymap.set("n", "]s", "<Plug>SpecNext", { buffer = true, silent = true, desc = "Next section" })
+    vim.keymap.set("n", "[s", "<Plug>SpecPrev", { buffer = true, silent = true, desc = "Previous section" })
   end,
 })
